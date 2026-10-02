@@ -91,7 +91,6 @@ function addItemsToReceipt(lines, title, items) {
     return;
   }
 
-  lines.push("");
   lines.push(title);
 
   for (const item of items) {
@@ -112,23 +111,24 @@ function addItemsToReceipt(lines, title, items) {
       )
       : "";
 
-    lines.push(
-      `${quantity}x ${name}` +
-      "\n" +
-      (options ? ` (${options})` : "") +
-       "\n" 
-    );
+    const price =
+      item.price !== undefined
+        ? formatPrice(item.price * quantity)
+        : "";
+    const itemText =
+      title === "HAUPTSPEISEN" && price
+        ? `${price} ${quantity}x ${name}`
+        : `${quantity}x ${name}`;
 
-    if (item.price !== undefined) {
-      lines.push(
-        `   ${formatPrice(item.price * quantity)}`
-      );
+    lines.push(itemText);
+
+    if (options) {
+      lines.push(` (${options})`);
     }
 
-    lines.push(
-      (extras ? `BOLD_START${extras}BOLD_END` : "") +
-      "\n"
-    );
+    if (extras) {
+      lines.push(`BOLD_START${extras}BOLD_END`);
+    }
 
     lines.push("------------------------------");
   }
@@ -187,11 +187,9 @@ function createReceipt(order) {
   );
 
   if (order.note) {
-    lines.push("");
     lines.push(`NOTIZ: ${order.note}`);
   }
 
-  lines.push("");
   lines.push("------------------------------");
   lines.push(
     `ZWISCHENSUMME: ${formatPrice(order.totalprice)}`
@@ -200,11 +198,7 @@ function createReceipt(order) {
   lines.push(
     `GESAMTPREIS: ${formatPrice(order.totalprice)}`
   );
-  lines.push("");
   lines.push("Vielen Dank!");
-  lines.push("");
-  lines.push("");
-  lines.push("");
 
   return lines.join("\n");
 }
