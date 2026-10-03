@@ -45,6 +45,19 @@ function formatItemName(title, item) {
   return formatter ? formatter(item) : item.name;
 }
 
+function getItemQuantity(item) {
+  const configuredQuantity =
+    item.quantity ??
+    item.count ??
+    item.amount ??
+    1;
+  const quantity = Number(configuredQuantity);
+
+  return Number.isFinite(quantity) && quantity > 0
+    ? quantity
+    : 1;
+}
+
 function formatExtras(extras, extraQuantities = []) {
   const groupedExtras = new Map();
 
@@ -94,9 +107,7 @@ function addItemsToReceipt(lines, title, items) {
   lines.push(title);
 
   for (const item of items) {
-    const quantity = Number(
-      item.quantity ?? item.amount ?? 1
-    );
+    const quantity = getItemQuantity(item);
 
     const name = formatItemName(title, item);
 
@@ -116,14 +127,18 @@ function addItemsToReceipt(lines, title, items) {
         ? formatPrice(item.price * quantity)
         : "";
     const itemText =
-      title === "HAUPTSPEISEN" && price
-        ? `${price} ${quantity}x ${name}`
+      price
+        ? `${quantity}x ${name} ${price}`
         : `${quantity}x ${name}`;
 
     lines.push(itemText);
 
     if (options) {
-      lines.push(` (${options})`);
+      const formattedOptions =
+        title === "HAUPTSPEISEN"
+          ? `BOLD_START(${options})BOLD_END`
+          : `(${options})`;
+      lines.push(` ${formattedOptions}`);
     }
 
     if (extras) {
@@ -145,7 +160,7 @@ function createReceipt(order) {
     `Name: ${order.firstname || ""} ${order.lastname || ""}`,
     `Telefon: ${order.telephone || "-"}`,
     `Datum: ${formatPickupDate(order)}`,
-    `Abholzeit: ${order.pickupTime || "-"}`,
+    `BOLD_STARTAbholzeit: ${order.pickupTime || "-"}BOLD_END`,
     "Art: Abholung vor Ort",
     "------------------------------"
   ];
@@ -187,7 +202,7 @@ function createReceipt(order) {
   );
 
   if (order.note) {
-    lines.push(`NOTIZ: ${order.note}`);
+    lines.push(`BOLD_STARTNOTIZ: ${order.note}BOLD_END`);
   }
 
   lines.push("------------------------------");
@@ -195,9 +210,6 @@ function createReceipt(order) {
     `ZWISCHENSUMME: ${formatPrice(order.totalprice)}`
   );
   lines.push("Lieferung: Abholung vor Ort");
-  lines.push(
-    `GESAMTPREIS: ${formatPrice(order.totalprice)}`
-  );
   lines.push("Vielen Dank!");
 
   return lines.join("\n");
@@ -273,6 +285,12 @@ function printReceipt(order) {
         "ascii"
       );
 
+      // Vor dem Schneiden mehrere Leerzeilen ausgeben, damit die letzte
+      // Bonzeile vollständig aus dem Druckkopf herausläuft.
+      const feed = Buffer.from([
+        0x1b, 0x64, 0x03
+      ]);
+
       // ESC/POS: Papier schneiden.
       const cut = Buffer.from([
         0x1d, 0x56, 0x00
@@ -281,6 +299,7 @@ function printReceipt(order) {
       const data = Buffer.concat([
         initialize,
         receipt,
+        feed,
         cut
       ]);
 
