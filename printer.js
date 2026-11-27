@@ -296,6 +296,10 @@ function printReceipt(order) {
         0x1d, 0x56, 0x00
       ]);
 
+      const beep = Buffer.from([
+        0x1b, 0x42, 0x01, 0x03
+      ]);
+
       const data = Buffer.concat([
         initialize,
         receipt,
@@ -303,7 +307,8 @@ function printReceipt(order) {
         cut,
         receipt,
         feed,
-        cut
+        cut,
+        beep
       ]);
 
       // Daten senden und Verbindung schließen.
