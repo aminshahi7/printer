@@ -300,6 +300,9 @@ function printReceipt(order) {
         initialize,
         receipt,
         feed,
+        cut,
+        receipt,
+        feed,
         cut
       ]);
 
